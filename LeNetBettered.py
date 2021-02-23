@@ -56,28 +56,26 @@ net.apply(init_weights)
 
 
 criterion = nn.CrossEntropyLoss()
-lr = 0.5
+n_epochs, lr = 0.5, 20
 optimizer = torch.optim.SGD(net.parameters(), lr=lr)
 
-net.train()
-for epoch in range(10):
-    av_loss = 0
-    for batch_idx, (X,y) in enumerate(train_loader):
-        optimizer.zero_grad()
-        y_hat = net(X)
-        with torch.enable_grad():
-            loss = criterion(y_hat, y)
-        loss.backward()
-        optimizer.step()
-        av_loss += loss.data
-        if (batch_idx+1) == len(train_loader):
-            print("epoch {}, loss : {:.5f}".format(epoch+1, av_loss/len(train_loader)))
+def train_batch(X, y, opt, net, criterion):
+  opt.zero_grad()
+  y_hat = net(X.reshape(-1,1, 28, 28))
+  loss = criterion(y_hat, y)
+  loss.backward()
+  opt.step()
+  return loss.data
+
+for epoch in range(n_epochs):
+  av_loss = 0
+  net.train()
+  for batch_idx,(X, y) in enumerate(train_loader):
+    av_loss += train_batch(X.to(device), y.to(device), opt, net, criterion)
+  print("epoch {}/{}, average loss : {:.5f}".format(epoch, n_epochs, av_loss))
 
 acc = 0
-for _,(X,y) in enumerate(test_loader):
-    corr = 0
-    for idx in range(len(X)):
-        if torch.argmax(net(X[idx])) == y[idx]:
-            corr += 1
-    acc += corr/len(X)
+for _, (X,y) in enumerate(test_loader):
+  corr = torch.sum(torch.argmax(net(X.to(device)),dim=1) == y)
+  acc += corr/len(X)
 print("Précision sur le jeu de test : ", acc/len(test_loader))
