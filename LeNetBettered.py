@@ -19,39 +19,16 @@ test_loader = torch.utils.data.DataLoader(dataset=test_set,
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv2d1 = nn.Conv2d(1, 6, kernel_size=5, padding=2)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2d2 = nn.Conv2d(6, 16, kernel_size=5)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.flatten = Flatten()
-        self.lin1 = nn.Linear(16*5*5, 120)
-        self.lin2 = nn.Linear(120, 84)
-        self.lin3 = nn.Linear(84, 10)
-        
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+      
     
-    def forward(self, X):
-        x = self.relu(self.conv2d1(X.reshape(-1,1, 28, 28)))
-        x = self.maxpool1(x)
-        x = self.relu(self.conv2d2(x))
-        x = self.maxpool2(x)
-        x = self.flatten(x)
-        x = self.sigmoid(self.lin1(x))
-        x = self.sigmoid(self.lin2(x))
-        x = self.lin3(x)
-        
-        return x
+def _BlockCNN(input_, out, ks, stride=1, padd=0):
+  layers = [nn.Conv2d(input_, out, kernel_size=ks, padding=padd), nn.MaxPool2d(kernel_size=2, stride=2)]
+  return layers
+net = nn.Sequential(*_BlockCNN(1, 6, 5, padd=2), nn.ReLU() , *_BlockCNN(6, 16, 5), Flatten(), nn.Linear(16*5*5, 120), nn.Sigmoid(), nn.Linear(120, 84), nn.Sigmoid(), nn.Linear(84, 10)).to(device)
 
-net = Net()
 def init_weights(m):
-        if type(m) == nn.Linear or type(m) == nn.Conv2d:
-            torch.nn.init.xavier_uniform(m.weight)
+  if type(m) == nn.Linear or type(m) == nn.Conv2d:
+    torch.nn.init.xavier_uniform(m.weight)
 net.apply(init_weights)
 
 
